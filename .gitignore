@@ -8,5 +8,6 @@ models/
 *.mp4
 *.avi
 *.mkv
-
+main.spec
 dist/
+build/
