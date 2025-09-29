@@ -31,6 +31,8 @@ class SubtitleExtractorApp(QWidget):
         self.btn_cancel = QPushButton("Cancel Extraction", self)
         self.btn_cancel.setEnabled(False)  # disabled until extraction starts
 
+        self.cancel_flag = False
+
         # layout
         layout = QVBoxLayout()
         layout.addWidget(self.label)
@@ -44,8 +46,12 @@ class SubtitleExtractorApp(QWidget):
         # connect signals
         self.btn_select.clicked.connect(self.select_video)
         self.btn_extract.clicked.connect(self.extract_subtitles)
-
+        self.btn_cancel.clicked.connect(self.cancel_extraction)
         self.video_path = None
+    
+    def cancel_extraction(self):
+        self.cancel_flag = True
+        self.log_area.append("[INFO] Extraction cancelled by user.")
 
     def select_video(self):
         file_dialog = QFileDialog.getOpenFileName(
@@ -66,8 +72,14 @@ class SubtitleExtractorApp(QWidget):
         self.progress_bar.setMaximum(total_frames)
         self.progress_bar.setValue(0)
 
+        self.cancel_flag = False
+        self.btn_cancel.setEnabled(True)  # enable cancel button during extraction
+
         entries = []
         for idx, (timestamp, frame) in enumerate(frames, start=1):
+            if self.cancel_flag:
+                break  # stop processing immediately
+
             text = ocr_frame_easyocr(frame)
             if text:
                 entries.append((timestamp, text))
@@ -75,7 +87,10 @@ class SubtitleExtractorApp(QWidget):
 
             # update progress bar
             self.progress_bar.setValue(idx)
-            QApplication.processEvents()  # ensures GUI updates
+            QApplication.processEvents()
+
+        self.btn_cancel.setEnabled(False)  # disable after extraction
+
 
         # group similar consecutive texts
         subs = []
