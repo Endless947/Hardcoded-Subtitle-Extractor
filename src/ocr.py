@@ -1,7 +1,5 @@
 import easyocr
 import torch
-import cv2
-import numpy as np
 from rapidfuzz import fuzz
 
 # Choose device
@@ -23,6 +21,7 @@ ignored_phrases = [
 # Keep track of last subtitle to prevent consecutive duplicates
 last_subtitle = None
 
+
 def is_valid_subtitle(text):
     """
     Check if the text is valid and not a system/overlay message.
@@ -30,6 +29,7 @@ def is_valid_subtitle(text):
     text = text.strip()
     if not text:
         return False
+
     text_lower = text.lower()
     # Use fuzzy partial ratio to catch partial matches
     for phrase in ignored_phrases:
@@ -37,25 +37,18 @@ def is_valid_subtitle(text):
             return False
     return True
 
+
 def ocr_frame_easyocr(frame):
     """
-    Detect and recognize text from a frame using EasyOCR.
-    Returns cleaned text string, ignoring unwanted lines, bottom-left overlays, and consecutive duplicates.
+    Detect and recognize text from a (pre-cropped) frame using EasyOCR.
+    Returns cleaned text string, ignoring unwanted lines and consecutive duplicates.
     """
     global last_subtitle
 
-    h, w = frame.shape[:2]
-
-    # Crop bottom quarter (common subtitle region)
-    roi = frame[int(h*0.5):h, :].copy()
-
-    # Black out bottom-right corner (approx. right 30% of cropped region)
-    roi[:, int(roi.shape[1]*0.85):] = 0  # ignore overlays in bottom-right
-
-    results = reader.readtext(roi)
+    results = reader.readtext(frame)
 
     lines = []
-    for (bbox, text, prob) in results:
+    for (_, text, prob) in results:
         if prob < 0.4:
             continue  # skip low-confidence results
 
@@ -67,7 +60,7 @@ def ocr_frame_easyocr(frame):
         if not is_valid_subtitle(text):
             continue
 
-        # prevent consecutive duplicates
+        # prevent consecutive duplicates with fuzzy matching
         if last_subtitle and fuzz.ratio(text.lower(), last_subtitle.lower()) > 90:
             continue
 

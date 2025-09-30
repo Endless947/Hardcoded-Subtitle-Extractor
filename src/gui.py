@@ -86,7 +86,7 @@ class SubtitleExtractorApp(QWidget):
         self.signals.log.emit(f"[INFO] Extracting subtitles from: {self.video_path}")
 
         # extract frames every 5 seconds
-        frames = extract_frames(self.video_path, interval_ms=5000)
+        frames = extract_frames(self.video_path, interval_ms=500)
         total_frames = len(frames)
         self.progress_bar.setMaximum(total_frames)
         self.progress_bar.setValue(0)
